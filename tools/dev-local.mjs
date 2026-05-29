@@ -173,6 +173,70 @@ async function handleApi(request, response, pathname) {
 
   if (request.method === 'GET' && pathname === '/api/my/ad-orders') return sendJson(response, state.adOrders);
 
+
+  if (request.method === 'GET' && pathname === '/api/admin/ad-positions') return sendJson(response, state.adPositions);
+
+  if (request.method === 'POST' && pathname === '/api/admin/ad-positions') {
+    const body = await readBody(request);
+    const position = {
+      id: String(state.adPositions.length + 1),
+      name: body.name || '新广告位',
+      code: body.code || `position_${Date.now()}`,
+      pricePerDay: body.pricePerDay || '0.00',
+      status: Number(body.status ?? 1),
+      sort: Number(body.sort ?? 0),
+    };
+    state.adPositions.unshift(position);
+    return sendJson(response, position, 201);
+  }
+
+  const adminPositionMatch = pathname.match(/^\/api\/admin\/ad-positions\/(\w+)$/);
+  if (adminPositionMatch && request.method === 'PATCH') {
+    const position = state.adPositions.find((item) => item.id === adminPositionMatch[1]);
+    if (!position) return sendJson(response, { message: 'Ad position not found' }, 404);
+    Object.assign(position, await readBody(request));
+    return sendJson(response, position);
+  }
+  if (adminPositionMatch && request.method === 'DELETE') {
+    const index = state.adPositions.findIndex((item) => item.id === adminPositionMatch[1]);
+    if (index === -1) return sendJson(response, { message: 'Ad position not found' }, 404);
+    state.adPositions.splice(index, 1);
+    return sendJson(response, { deleted: true });
+  }
+
+  if (request.method === 'GET' && pathname === '/api/admin/ad-packages') return sendJson(response, state.adPackages);
+
+  if (request.method === 'POST' && pathname === '/api/admin/ad-packages') {
+    const body = await readBody(request);
+    const position = state.adPositions.find((item) => item.id === body.positionId) || state.adPositions[0];
+    const adPackage = {
+      id: String(state.adPackages.length + 1),
+      positionId: position.id,
+      name: body.name || '新广告套餐',
+      days: Number(body.days || 1),
+      price: body.price || '0.00',
+      originalPrice: body.originalPrice,
+      status: Number(body.status ?? 1),
+      sort: Number(body.sort ?? 0),
+    };
+    state.adPackages.unshift(adPackage);
+    return sendJson(response, adPackage, 201);
+  }
+
+  const adminPackageMatch = pathname.match(/^\/api\/admin\/ad-packages\/(\w+)$/);
+  if (adminPackageMatch && request.method === 'PATCH') {
+    const adPackage = state.adPackages.find((item) => item.id === adminPackageMatch[1]);
+    if (!adPackage) return sendJson(response, { message: 'Ad package not found' }, 404);
+    Object.assign(adPackage, await readBody(request));
+    return sendJson(response, adPackage);
+  }
+  if (adminPackageMatch && request.method === 'DELETE') {
+    const index = state.adPackages.findIndex((item) => item.id === adminPackageMatch[1]);
+    if (index === -1) return sendJson(response, { message: 'Ad package not found' }, 404);
+    state.adPackages.splice(index, 1);
+    return sendJson(response, { deleted: true });
+  }
+
   if (request.method === 'GET' && pathname === '/api/admin/statistics') {
     return sendJson(response, {
       users: state.users.length,

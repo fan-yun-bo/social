@@ -1,8 +1,8 @@
-import { Body, Controller, Get, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { AdsService } from './ads.service';
-import { CreateAdOrderDto, RejectAdDto } from './dto/ad.dto';
+import { CreateAdOrderDto, RejectAdDto, SaveAdPackageDto, SaveAdPositionDto } from './dto/ad.dto';
 
 @Controller()
 export class AdsController {
@@ -44,8 +44,26 @@ export class AdminAdsController {
   @Get('ad-positions')
   positions() { return this.adsService.adminPositions(); }
 
+  @Post('ad-positions')
+  createPosition(@Body() dto: SaveAdPositionDto) { return this.adsService.createPosition(dto); }
+
+  @Patch('ad-positions/:id')
+  updatePosition(@Param('id') id: string, @Body() dto: SaveAdPositionDto) { return this.adsService.updatePosition(id, dto); }
+
+  @Delete('ad-positions/:id')
+  deletePosition(@Param('id') id: string) { return this.adsService.deletePosition(id); }
+
   @Get('ad-packages')
   packages() { return this.adsService.adminPackages(); }
+
+  @Post('ad-packages')
+  createPackage(@Body() dto: SaveAdPackageDto) { return this.adsService.createPackage(dto); }
+
+  @Patch('ad-packages/:id')
+  updatePackage(@Param('id') id: string, @Body() dto: SaveAdPackageDto) { return this.adsService.updatePackage(id, dto); }
+
+  @Delete('ad-packages/:id')
+  deletePackage(@Param('id') id: string) { return this.adsService.deletePackage(id); }
 
   @Get('ad-orders')
   orders() { return this.adsService.adminOrders(); }

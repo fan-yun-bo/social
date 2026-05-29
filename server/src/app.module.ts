@@ -11,6 +11,7 @@ import { AdsModule } from './modules/ads/ads.module';
 import { PayModule } from './modules/pay/pay.module';
 import { AdminModule } from './modules/admin/admin.module';
 import { StatisticsModule } from './modules/statistics/statistics.module';
+import { HealthModule } from './modules/health/health.module';
 
 @Module({
   imports: [
@@ -38,6 +39,7 @@ import { StatisticsModule } from './modules/statistics/statistics.module';
     PayModule,
     AdminModule,
     StatisticsModule,
+    HealthModule,
   ],
 })
 export class AppModule {}

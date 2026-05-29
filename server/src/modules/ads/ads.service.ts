@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { LessThanOrEqual, MoreThanOrEqual, Repository } from 'typeorm';
-import { CreateAdOrderDto, RejectAdDto } from './dto/ad.dto';
+import { CreateAdOrderDto, RejectAdDto, SaveAdPackageDto, SaveAdPositionDto } from './dto/ad.dto';
 import { Ad } from './ad.entity';
 import { AdLog } from './ad-log.entity';
 import { AdOrder } from './ad-order.entity';
@@ -74,7 +74,77 @@ export class AdsService {
   }
 
   adminPositions() { return this.positions.find({ order: { sort: 'DESC' } }); }
-  adminPackages() { return this.packages.find({ order: { sort: 'DESC' } }); }
+
+  async createPosition(dto: SaveAdPositionDto) {
+    return this.positions.save(this.positions.create({
+      name: dto.name ?? '新广告位',
+      code: dto.code ?? `position_${Date.now()}`,
+      description: dto.description,
+      width: dto.width,
+      height: dto.height,
+      maxCount: dto.maxCount ?? 1,
+      pricePerDay: dto.pricePerDay ?? '0.00',
+      status: dto.status ?? 1,
+      sort: dto.sort ?? 0,
+    }));
+  }
+
+  async updatePosition(id: string, dto: SaveAdPositionDto) {
+    const position = await this.positions.findOne({ where: { id } });
+    if (!position) throw new NotFoundException('Ad position not found');
+    await this.positions.update(id, dto);
+    return this.positions.findOne({ where: { id } });
+  }
+
+  async deletePosition(id: string) {
+    const usedByPackage = await this.packages.exists({ where: { positionId: id } });
+    if (usedByPackage) {
+      await this.positions.update(id, { status: 0 });
+      return { deleted: false, disabled: true };
+    }
+    await this.positions.delete(id);
+    return { deleted: true };
+  }
+
+  adminPackages() { return this.packages.find({ relations: { position: true }, order: { sort: 'DESC' } }); }
+
+  async createPackage(dto: SaveAdPackageDto) {
+    if (!dto.positionId) throw new NotFoundException('Ad position not found');
+    const position = await this.positions.findOne({ where: { id: dto.positionId } });
+    if (!position) throw new NotFoundException('Ad position not found');
+    return this.packages.save(this.packages.create({
+      positionId: dto.positionId,
+      name: dto.name ?? '新广告套餐',
+      days: dto.days ?? 1,
+      price: dto.price ?? '0.00',
+      originalPrice: dto.originalPrice,
+      description: dto.description,
+      status: dto.status ?? 1,
+      sort: dto.sort ?? 0,
+    }));
+  }
+
+  async updatePackage(id: string, dto: SaveAdPackageDto) {
+    const adPackage = await this.packages.findOne({ where: { id } });
+    if (!adPackage) throw new NotFoundException('Ad package not found');
+    if (dto.positionId) {
+      const position = await this.positions.findOne({ where: { id: dto.positionId } });
+      if (!position) throw new NotFoundException('Ad position not found');
+    }
+    await this.packages.update(id, dto);
+    return this.packages.findOne({ where: { id } });
+  }
+
+  async deletePackage(id: string) {
+    const usedByOrder = await this.orders.exists({ where: { packageId: id } });
+    if (usedByOrder) {
+      await this.packages.update(id, { status: 0 });
+      return { deleted: false, disabled: true };
+    }
+    await this.packages.delete(id);
+    return { deleted: true };
+  }
+
   adminOrders() { return this.orders.find({ order: { createdAt: 'DESC' } }); }
 
   async approveAd(id: string) {

@@ -1,0 +1,11 @@
+.git
+node_modules
+dist
+coverage
+uploads
+.env
+.env.*
+!.env.example
+admin/dist
+server/dist
+miniapp/unpackage

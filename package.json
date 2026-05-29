@@ -14,7 +14,10 @@
     "dev:admin": "npm --workspace admin run dev",
     "dev:miniapp": "npm --workspace miniapp run dev:mp-weixin",
     "build": "npm run build --workspaces --if-present",
-    "typecheck": "npm run typecheck --workspaces --if-present"
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "docker:up": "docker compose up -d --build",
+    "docker:down": "docker compose down",
+    "docker:logs": "docker compose logs -f"
   },
   "engines": {
     "node": ">=20"
