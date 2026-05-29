@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>社交广告平台 - 本地预览</title>
+    <style>
+      :root { color-scheme: light; font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+      body { margin: 0; background: #f6f7fb; color: #0f172a; }
+      header { background: linear-gradient(135deg, #2563eb, #7c3aed); color: #fff; padding: 32px 24px; }
+      header h1 { margin: 0 0 8px; font-size: 32px; }
+      header p { margin: 0; opacity: .88; }
+      main { max-width: 1180px; margin: 0 auto; padding: 24px; display: grid; grid-template-columns: 2fr 1fr; gap: 24px; }
+      .card { background: #fff; border-radius: 18px; box-shadow: 0 12px 30px rgb(15 23 42 / 8%); padding: 20px; margin-bottom: 18px; }
+      .notice { border-left: 5px solid #2563eb; }
+      .banner { width: 100%; border-radius: 16px; overflow: hidden; margin-bottom: 18px; }
+      .banner img { width: 100%; display: block; }
+      textarea, input, select { width: 100%; box-sizing: border-box; border: 1px solid #dbe3ef; border-radius: 12px; padding: 12px; font-size: 14px; margin: 8px 0 12px; }
+      button { border: 0; background: #2563eb; color: #fff; border-radius: 999px; padding: 10px 16px; cursor: pointer; font-weight: 700; }
+      button.secondary { background: #0f172a; }
+      .post h3 { margin: 0 0 8px; }
+      .meta { color: #64748b; font-size: 13px; }
+      .actions { display: flex; gap: 10px; margin-top: 12px; align-items: center; }
+      .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+      .metric { background: #f8fafc; padding: 16px; border-radius: 14px; }
+      .metric strong { font-size: 26px; display: block; }
+      .tag { display: inline-block; background: #dcfce7; color: #166534; padding: 4px 10px; border-radius: 999px; font-size: 12px; }
+      @media (max-width: 900px) { main { grid-template-columns: 1fr; } }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>社交广告平台本地预览</h1>
+      <p>零依赖启动模式：先访问页面流程，后续再接 NestJS + MySQL + Vue3 + uni-app 正式工程。</p>
+    </header>
+    <main>
+      <section>
+        <div id="notice" class="card notice"></div>
+        <div id="banner" class="banner"></div>
+        <div class="card">
+          <h2>发布动态</h2>
+          <textarea id="postContent" rows="4" placeholder="输入你想发布的内容"></textarea>
+          <button onclick="createPost()">发布</button>
+        </div>
+        <div id="posts"></div>
+      </section>
+      <aside>
+        <div class="card">
+          <h2>登录与手机号</h2>
+          <button onclick="login()">模拟微信登录</button>
+          <button class="secondary" onclick="bindPhone()">手机号入库</button>
+          <p id="userInfo" class="meta">未登录</p>
+        </div>
+        <div class="card">
+          <h2>广告购买</h2>
+          <select id="packageSelect"></select>
+          <input id="adTitle" placeholder="广告标题" value="本地商家活动" />
+          <button onclick="createAdOrder()">模拟购买广告</button>
+          <div id="orders" class="meta"></div>
+        </div>
+        <div class="card">
+          <h2>后台统计</h2>
+          <div id="stats" class="grid"></div>
+        </div>
+      </aside>
+    </main>
+    <script>
+      const api = async (url, options = {}) => {
+        const response = await fetch(url, { headers: { 'content-type': 'application/json', ...(options.headers || {}) }, ...options });
+        return response.json();
+      };
+
+      async function load() {
+        const announcements = await api('/api/announcements');
+        document.querySelector('#notice').innerHTML = `<strong>📢 ${announcements[0]?.title || '暂无公告'}</strong><p>${announcements[0]?.content || ''}</p>`;
+
+        const ads = await api('/api/ads');
+        document.querySelector('#banner').innerHTML = ads[0] ? `<img src="${ads[0].imageUrl}" alt="${ads[0].title}" />` : '';
+
+        const packages = await api('/api/ad-packages');
+        document.querySelector('#packageSelect').innerHTML = packages.map((item) => `<option value="${item.id}" data-position="${item.positionId}">${item.name} / ￥${item.price}</option>`).join('');
+
+        await Promise.all([loadPosts(), loadStats(), loadOrders()]);
+      }
+
+      async function login() {
+        const data = await api('/api/auth/wx-login', { method: 'POST', body: JSON.stringify({ code: Date.now().toString(), nickname: '本地预览用户' }) });
+        localStorage.setItem('token', data.token);
+        document.querySelector('#userInfo').textContent = `已登录：${data.user.nickname}`;
+      }
+
+      async function bindPhone() {
+        const data = await api('/api/auth/wx-phone', { method: 'POST', body: JSON.stringify({ phone: '13800138000' }) });
+        document.querySelector('#userInfo').textContent = `手机号已入库：${data.phone}`;
+      }
+
+      async function createPost() {
+        const content = document.querySelector('#postContent').value.trim();
+        if (!content) return alert('请输入动态内容');
+        await api('/api/posts', { method: 'POST', body: JSON.stringify({ content, images: [] }) });
+        document.querySelector('#postContent').value = '';
+        await loadPosts();
+        await loadStats();
+      }
+
+      async function likePost(id) {
+        await api(`/api/posts/${id}/like`, { method: 'POST' });
+        await loadPosts();
+      }
+
+      async function loadPosts() {
+        const data = await api('/api/posts');
+        document.querySelector('#posts').innerHTML = data.list.map((post) => `
+          <article class="card post">
+            <h3>${post.user?.nickname || '用户'} ${post.isTop ? '<span class="tag">置顶</span>' : ''}</h3>
+            <p>${post.content}</p>
+            <p class="meta">${new Date(post.createdAt).toLocaleString()}</p>
+            <div class="actions"><button onclick="likePost('${post.id}')">点赞</button><span>👍 ${post.likeCount}</span><span>💬 ${post.commentCount}</span></div>
+          </article>`).join('');
+      }
+
+      async function createAdOrder() {
+        const select = document.querySelector('#packageSelect');
+        const option = select.selectedOptions[0];
+        const data = await api('/api/ad-orders', { method: 'POST', body: JSON.stringify({ packageId: select.value, positionId: option.dataset.position, title: document.querySelector('#adTitle').value }) });
+        alert(`订单已创建：${data.order.orderNo}，本地模式模拟支付成功，等待审核。`);
+        await loadOrders();
+        await loadStats();
+      }
+
+      async function loadOrders() {
+        const orders = await api('/api/my/ad-orders');
+        document.querySelector('#orders').innerHTML = orders.length ? orders.map((item) => `<p>${item.orderNo} / ￥${item.payAmount} / 待审核</p>`).join('') : '暂无广告订单';
+      }
+
+      async function loadStats() {
+        const stats = await api('/api/admin/statistics');
+        document.querySelector('#stats').innerHTML = Object.entries(stats).map(([key, value]) => `<div class="metric"><span>${key}</span><strong>${value}</strong></div>`).join('');
+      }
+
+      load();
+    </script>
+  </body>
+</html>

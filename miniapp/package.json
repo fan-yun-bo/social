@@ -1,0 +1,24 @@
+{
+  "name": "@social/miniapp",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev:mp-weixin": "uni -p mp-weixin",
+    "build": "uni build -p mp-weixin",
+    "typecheck": "vue-tsc -b --noEmit"
+  },
+  "dependencies": {
+    "@dcloudio/uni-app": "^3.0.0-4070520251223001",
+    "@dcloudio/uni-components": "^3.0.0-4070520251223001",
+    "@dcloudio/uni-mp-weixin": "^3.0.0-4070520251223001",
+    "@dcloudio/vite-plugin-uni": "^3.0.0-4070520251223001",
+    "vue": "^3.5.25"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3",
+    "vite": "^7.2.4",
+    "vue-tsc": "^3.1.5",
+    "@dcloudio/types": "^3.4.17"
+  }
+}
