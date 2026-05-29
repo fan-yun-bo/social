@@ -1,0 +1,22 @@
+{
+  "name": "social-ad-platform",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Social advertising platform monorepo with NestJS, Vue3/Vite and uni-app.",
+  "workspaces": [
+    "server",
+    "admin",
+    "miniapp"
+  ],
+  "scripts": {
+    "preview:local": "node tools/dev-local.mjs",
+    "dev:server": "npm --workspace server run start:dev",
+    "dev:admin": "npm --workspace admin run dev",
+    "dev:miniapp": "npm --workspace miniapp run dev:mp-weixin",
+    "build": "npm run build --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
