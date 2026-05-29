@@ -1,0 +1,66 @@
+services:
+  mysql:
+    image: mysql:8.4
+    container_name: social-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-social_root_password}
+      MYSQL_DATABASE: ${DATABASE_NAME:-social}
+      MYSQL_USER: ${DATABASE_USER:-social}
+      MYSQL_PASSWORD: ${DATABASE_PASSWORD:-social_password}
+      TZ: Asia/Shanghai
+    ports:
+      - "${DATABASE_PORT:-3306}:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -u$${MYSQL_USER} -p$${MYSQL_PASSWORD} --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  server:
+    build:
+      context: .
+      dockerfile: server/Dockerfile
+    container_name: social-server
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      DATABASE_HOST: mysql
+      DATABASE_PORT: 3306
+      DATABASE_USER: ${DATABASE_USER:-social}
+      DATABASE_PASSWORD: ${DATABASE_PASSWORD:-social_password}
+      DATABASE_NAME: ${DATABASE_NAME:-social}
+      JWT_SECRET: ${JWT_SECRET:-change-me-before-production}
+      UPLOAD_DIR: uploads
+      PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:-http://localhost:3000}
+    ports:
+      - "${SERVER_PORT:-3000}:3000"
+    volumes:
+      - uploads_data:/app/uploads
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:3000/api/health/readiness | grep -q ready"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+
+  admin:
+    build:
+      context: .
+      dockerfile: admin/Dockerfile
+    container_name: social-admin
+    restart: unless-stopped
+    depends_on:
+      server:
+        condition: service_started
+    ports:
+      - "${ADMIN_PORT:-8080}:80"
+
+volumes:
+  mysql_data:
+  uploads_data:

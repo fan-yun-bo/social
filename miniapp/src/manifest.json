@@ -1,0 +1,11 @@
+{
+  "name": "社交广告平台",
+  "appid": "__UNI__SOCIAL_AD",
+  "description": "社交圈与广告付费小程序",
+  "versionName": "0.1.0",
+  "versionCode": "1",
+  "mp-weixin": {
+    "appid": "",
+    "setting": { "urlCheck": false }
+  }
+}
